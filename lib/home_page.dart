@@ -3,6 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:tictactoe/custom_dialog.dart';
 import 'package:tictactoe/game_button.dart';
+import 'package:firebase_admob/firebase_admob.dart';
+import 'settings.dart';
+import 'module.dart';
+
+const String testDevice = '';
 
 class HomePage extends StatefulWidget {
   @override
@@ -10,6 +15,18 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static final MobileAdTargetingInfo targetInfo = MobileAdTargetingInfo(
+    testDevices: <String>[],
+    keywords: <String>['Game', 'TicTacToe', 'Board'],
+    birthday: DateTime.now(),
+    childDirected: true,
+  );
+
+  bool playWithBot = module.getBot();
+  bool enableSound = module.getSound();
+  BannerAd _bannerAd;
+  InterstitialAd _interstitialAd;
+
   List<GameButton> buttonsList;
   var player1;
   var player2;
@@ -17,10 +34,40 @@ class _HomePageState extends State<HomePage> {
   String player1Name = "Player 1";
   String player2Name = "Player 2";
 
+  BannerAd createBannerAd() {
+    return BannerAd(
+        adUnitId: BannerAd.testAdUnitId,
+        size: AdSize.banner,
+        targetingInfo: targetInfo,
+        listener: (MobileAdEvent event) {
+          print('Banner event $event');
+        });
+  }
+
+  InterstitialAd createInterstitialAd() {
+    return InterstitialAd(
+        adUnitId: InterstitialAd.testAdUnitId,
+        targetingInfo: targetInfo,
+        listener: (MobileAdEvent event) {
+          print('Interstitial event $event');
+        });
+  }
+
   @override
   void initState() {
     super.initState();
+    FirebaseAdMob.instance.initialize(appId: FirebaseAdMob.testAppId);
+    _interstitialAd = createInterstitialAd()
+      ..load()
+      ..show();
     buttonsList = doInit();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    _interstitialAd?.dispose();
+    super.dispose();
   }
 
   List<GameButton> doInit() {
@@ -42,8 +89,20 @@ class _HomePageState extends State<HomePage> {
     return gameButtons;
   }
 
+  static Future<void> playSound(type) async {
+    await SystemChannels.platform.invokeMethod<void>(
+      'SystemSound.play',
+      type.toString(),
+    );
+  }
+
   void playGame(GameButton gb) {
+    playWithBot = module.getBot();
+    enableSound = module.getSound();
+    HapticFeedback.vibrate();
+
     setState(() {
+      if (enableSound == true) playSound('beep');
       if (activePlayer == 1) {
         gb.text = "X";
         gb.bg = Colors.blue;
@@ -64,7 +123,10 @@ class _HomePageState extends State<HomePage> {
               builder: (_) => new CustomDialog("Game Tied",
                   "Press the reset button to start again.", resetGame));
         } else {
-          activePlayer == 2 ? null : null;
+          if (playWithBot == true && activePlayer == 2) {
+            autoPlay();
+          }
+          //activePlayer == 2 ? null : null;
         }
       }
     });
@@ -196,14 +258,28 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
+          actions: <Widget>[
+            IconButton(
+              icon: Icon(Icons.settings),
+              padding: EdgeInsets.only(right: 15),
+              onPressed: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => Setting()));
+                // setState(() {
+                //   playWithBot = module.getBot();
+                //   enableSound = module.getSound();
+                // });
+              },
+            ),
+          ],
         ),
         body: new Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          //mainAxisAlignment: MainAxisAlignment.start,
+          //crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             new Expanded(
               child: new GridView.builder(
-                padding: const EdgeInsets.all(10.0),
+                padding: const EdgeInsets.all(50.0),
                 gridDelegate: new SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     childAspectRatio: 1.0,
@@ -299,7 +375,7 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.all(18.0),
               onPressed: resetGame,
             ),
-            Padding(padding: EdgeInsets.only(top: 10)),
+            Padding(padding: EdgeInsets.only(top: 70)),
           ],
         ));
   }
