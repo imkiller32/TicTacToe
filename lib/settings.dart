@@ -84,7 +84,7 @@ class _SettingPageState extends State<SettingPage> {
                 ),
               ),
               ListTile(
-                title: Text('Enable Sound'),
+                title: Text('Enable Vibration'),
                 trailing: Switch(
                   value: enableSound,
                   onChanged: (value) {

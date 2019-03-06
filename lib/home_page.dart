@@ -9,6 +9,8 @@ import 'module.dart';
 
 const String testDevice = '';
 
+const soundPath = "beep.mp3";
+
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => new _HomePageState();
@@ -26,7 +28,8 @@ class _HomePageState extends State<HomePage> {
   bool enableSound = module.getSound();
   BannerAd _bannerAd;
   InterstitialAd _interstitialAd;
-
+  final playerControl1 = TextEditingController();
+  final playerControl2 = TextEditingController();
   List<GameButton> buttonsList;
   var player1;
   var player2;
@@ -89,20 +92,12 @@ class _HomePageState extends State<HomePage> {
     return gameButtons;
   }
 
-  static Future<void> playSound(type) async {
-    await SystemChannels.platform.invokeMethod<void>(
-      'SystemSound.play',
-      type.toString(),
-    );
-  }
-
   void playGame(GameButton gb) {
     playWithBot = module.getBot();
     enableSound = module.getSound();
-    HapticFeedback.vibrate();
 
     setState(() {
-      if (enableSound == true) playSound('beep');
+      if (enableSound == true) HapticFeedback.vibrate();
       if (activePlayer == 1) {
         gb.text = "X";
         gb.bg = Colors.blue;
@@ -110,6 +105,7 @@ class _HomePageState extends State<HomePage> {
         player1.add(gb.id);
       } else {
         gb.text = "0";
+
         gb.bg = Colors.green;
         activePlayer = 1;
         player2.add(gb.id);
@@ -262,6 +258,7 @@ class _HomePageState extends State<HomePage> {
             IconButton(
               icon: Icon(Icons.settings),
               padding: EdgeInsets.only(right: 15),
+              tooltip: 'Options',
               onPressed: () {
                 Navigator.push(context,
                     MaterialPageRoute(builder: (context) => Setting()));
@@ -320,6 +317,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         Expanded(
                           child: TextField(
+                            controller: playerControl1,
                             decoration: new InputDecoration(
                               hintText: player1Name,
                             ),
@@ -333,7 +331,24 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                     Padding(
-                      padding: EdgeInsets.all(10),
+                      padding: EdgeInsets.only(top: 25),
+                    ),
+                    IconButton(
+                      //padding: EdgeInsets.only(top: 25),
+                      icon: Icon(Icons.swap_vert),
+
+                      onPressed: () {
+                        //print(playerControl1.text);
+                        setState(() {
+                          String temp1 = playerControl1.text;
+                          print(temp1);
+                          String temp2 = playerControl2.text;
+                          playerControl1.text = temp2;
+                          player1Name = temp2;
+                          playerControl2.text = temp1;
+                          player2Name = temp1;
+                        });
+                      },
                     ),
                     Row(
                       children: <Widget>[
@@ -346,6 +361,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         Expanded(
                           child: TextField(
+                            controller: playerControl2,
                             decoration: new InputDecoration(
                               hintText: player2Name,
                             ),
